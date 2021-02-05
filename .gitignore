@@ -1,2 +1,4 @@
 #packages
 node_modules
+#environment_variables
+.env

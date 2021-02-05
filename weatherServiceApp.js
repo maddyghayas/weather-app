@@ -1,42 +1,35 @@
-const geoCode = require('./util/geoCode')
-const forecast = require('./util/forecast')
+const express = require('express')
 
-/*
-const url = "http://api.weatherstack.com/current?access_key=3dfaf6929face8e730f465b194aeb3af&query=25.600,77.200";
-/!*
-request({url: url, json : true}, (error, response) => {
-    //console.log(response.body);
-    const currentData = response.body.current;
-    console.log("It is  " + currentData.weather_descriptions)
-    console.log("Current Temperatue " + currentData.temperature);
-    console.log("Feels Like Temperatue " + currentData.feelslike);
+const validateRequest = require('./middleware/validateRequest')
+const interceptRequest = require('./middleware/interceptor')
+const apiErrorHandler = require('./error/apiErrorHandler')
+const weatherAPI = require('./weatherService')
+const apiError = require('./error/ApiError')
 
-})*!/
+const app = express();
 
-const encodeURL = "https://api.mapbox.com/geocoding/v5/mapbox.places/los.json?access_token=pk.eyJ1IjoibWFkZWVoYWciLCJhIjoiY2tqc2N2cGsxM3lhdzJ4bzdkMms2NmpzaCJ9.qRIlgedBiGGpXHb6AYDOjQ&limit=1";
+app.listen(7070, () => {
+    console.log('server is running on port 7070.')
+});
 
-request({url: encodeURL, json: true}, (error, response) => {
-    if (error) {
-        console.log("Unable to connect to server");
-    } else if (response.body.message === "Not Found" || response.body.features.lemgth == 0) {
-        console.log("invalid location");
-    } else {
-        //console.log(response.body);
-        const features = response.body.features;
-        const lat = features[0].center[0];
-        const long = features[0].center[1];
-        console.log("latitude: " + lat + " longitude " + long);
-    }
-})*/
+app.use(validateRequest);
+app.use(interceptRequest);
 
-const address = process.argv[2];
+app.get('', (req, res) => {
+    res.send('Welcome to Weather Service!')
+});
 
-if(!address) {
-    console.log("Please provide the input")
-} else {
-    geoCode(address, (error, data) => {
-        forecast(data.latitude, data.longitude, data.place, (error, forecastData) => {
-            console.log(forecastData);
-        })
+app.get('/weather',
+    async (req, res) => {
+
+        const response = await weatherAPI(req.query.search);
+        if (!response.code == 200) {
+            next(apiError.serverError(response.message));
+        } else {
+            res.send(response);
+        }
     })
-}
+
+app.use(apiErrorHandler)
+
+module.exports = app.listen(3000);
